@@ -1,3 +1,5 @@
+import json
+
 import requests
 from requests import Response
 from telegram import Update
@@ -17,14 +19,25 @@ async def handle_inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE
     if len(input) != 3:
         return
 
-    available_currencies_response: Response = requests.get(urls.FRANKFURTER_URL_AVAILABLE_CURRENCIES)
-    print(available_currencies_response.status_code)
-    if available_currencies_response.status_code != 200:
+    api_status_response: Response = requests.get(urls.CURRENCY_API_URL_STATUS + urls.API_KEY_STRING)
+
+    if api_status_response.status_code != 200:
         return
 
-    if (input[0] in available_currencies_response.json().keys()) and (input[-1] in available_currencies_response.json().keys()):
-        print(available_currencies_response.json()[input[0]] + " converts to " + available_currencies_response.json()[input[-1]])
+    if api_status_response.json()["quotas"]["month"]["remaining"] == 0:
+        await handle_out_of_limit_requests(update, context)
+        return
 
+    latest_currencies_response = requests.get(urls.CURRENCY_API_URL_LATEST + urls.API_KEY_STRING)
+
+    with open("latest_currencies.json", "w") as latest_currencies_file:
+        json.dump(latest_currencies_response.json(), latest_currencies_file, indent=4)
+
+    # if (input[0] in api_status_response.json().keys()) and (input[-1] in api_status_response.json().keys()):
+    #     print(api_status_response.json()[input[0]] + " converts to " + api_status_response.json()[input[-1]])
+
+async def handle_out_of_limit_requests(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    pass
 
 def main():
     app = Application.builder().token(config.BOT_TOKEN).build()
