@@ -6,11 +6,13 @@ from datetime import time, datetime, timedelta
 import aiohttp
 
 from telegram import Update, InlineQueryResultArticle, InputTextMessageContent
-from telegram.ext import Application, InlineQueryHandler, ContextTypes, CommandHandler
+from telegram.ext import Application, InlineQueryHandler, ContextTypes, CommandHandler, MessageHandler, \
+    ConversationHandler, filters
 
 import commands
 import config
 import urls
+from conversation_states import ConversationStates
 
 global subtask
 
@@ -160,8 +162,17 @@ def main():
            .build())
 
     app.add_handler(InlineQueryHandler(handle_inline_query))
-    #app.add_handler(CommandHandler("allcurrencies", commands.show_all_currencies))
-    
+
+    app.add_handler(ConversationHandler(
+        entry_points=[CommandHandler("newplan", commands.new_plan)],
+        states={
+            ConversationStates.NAMING: [MessageHandler(filters.TEXT & ~filters.COMMAND, commands.name_plan)]
+        },
+        fallbacks = [
+            CommandHandler("cancel", commands.cancel),
+        ]
+    ))
+
     print("bot is running")
     app.run_polling()
 

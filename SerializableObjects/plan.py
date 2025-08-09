@@ -1,19 +1,20 @@
 import json
 from typing import List
 
-from user import User
+from SerializableObjects.user import User
 
 
 class Plan:
-    id: int
+    name: str
     from_currency: str
     to_currency: str
     users: List[User]
     frequency: int
     duration: int
 
-    def __init__(self,plan_id: int, from_currency: str, to_currency: str, users: List[User], frequency: int, duration: int):
-        self.id = plan_id
+    def __init__(self, name: str, from_currency: str = None, to_currency: str = None,
+                 users: List[User] = None, frequency: int = None, duration: int = None):
+        self.name = name
         self.from_currency = from_currency
         self.to_currency = to_currency
         self.users = users
@@ -23,7 +24,7 @@ class Plan:
 
     def to_dict(self):
         return {
-            "id": self.id,
+            "name": self.name,
             "from_currency": self.from_currency,
             "to_currency": self.to_currency,
             "users": self.users,
@@ -41,7 +42,7 @@ class Plan:
             users.append(User.from_dict(user))
 
         return cls(
-            data["id"],
+            data["name"],
             data["from_currency"],
             data["to_currency"],
             users,
