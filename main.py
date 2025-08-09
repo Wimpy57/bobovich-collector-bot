@@ -1,9 +1,9 @@
 import asyncio
 import json
 import os.path
+import sys
 import zoneinfo
 from datetime import time, datetime, timedelta
-import time as time_module
 import aiohttp
 
 from telegram import Update, InlineQueryResultArticle, InputTextMessageContent
@@ -12,6 +12,7 @@ from telegram.ext import Application, InlineQueryHandler, ContextTypes
 import config
 import urls
 
+global subtask
 
 async def handle_inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.inline_query.query
@@ -83,7 +84,7 @@ async def schedule_currency_update():
 
         sleep_seconds = (today_target - now).total_seconds()
         print(f"waiting until currencies update at {today_target}")
-        time_module.sleep(sleep_seconds)
+        await asyncio.sleep(sleep_seconds)
 
         await update_currencies_info()
 
@@ -140,13 +141,23 @@ def is_float(string: str) -> bool:
 async def convert_currency(convert_from: dict, amount: float, convert_to: dict) -> float:
     return (convert_to["value"] / convert_from["value"]) * amount
 
+async def start_background_task(application: Application):
+    global subtask
+    subtask = asyncio.create_task(schedule_currency_update())
+
+async def stopp_background_task(application: Application):
+    global subtask
+    subtask.cancel()
 
 def main():
-    app = Application.builder().token(config.BOT_TOKEN).build()
+    app = (Application.builder()
+           .token(config.BOT_TOKEN)
+           .post_init(post_init=start_background_task)
+           .post_shutdown(post_shutdown=stopp_background_task)
+           .build())
     app.add_handler(InlineQueryHandler(handle_inline_query))
 
-    print("Bot is running")
-    asyncio.run(schedule_currency_update())
+    print("bot is running")
     app.run_polling()
 
 if __name__ == '__main__':
