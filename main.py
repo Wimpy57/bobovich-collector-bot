@@ -1,14 +1,14 @@
 import asyncio
 import json
 import os.path
-import sys
 import zoneinfo
 from datetime import time, datetime, timedelta
 import aiohttp
 
 from telegram import Update, InlineQueryResultArticle, InputTextMessageContent
-from telegram.ext import Application, InlineQueryHandler, ContextTypes
+from telegram.ext import Application, InlineQueryHandler, ContextTypes, CommandHandler
 
+import commands
 import config
 import urls
 
@@ -76,7 +76,7 @@ async def schedule_currency_update():
 
     while True:
         now = datetime.now(tz)
-        target_time = time(10, 9, 0)
+        target_time = time(0, 0, 0)
         today_target = datetime.combine(now.date(), target_time).replace(tzinfo=tz)
 
         if now > today_target:
@@ -141,13 +141,16 @@ def is_float(string: str) -> bool:
 async def convert_currency(convert_from: dict, amount: float, convert_to: dict) -> float:
     return (convert_to["value"] / convert_from["value"]) * amount
 
+
 async def start_background_task(application: Application):
     global subtask
     subtask = asyncio.create_task(schedule_currency_update())
 
+
 async def stopp_background_task(application: Application):
     global subtask
     subtask.cancel()
+
 
 def main():
     app = (Application.builder()
@@ -155,10 +158,13 @@ def main():
            .post_init(post_init=start_background_task)
            .post_shutdown(post_shutdown=stopp_background_task)
            .build())
-    app.add_handler(InlineQueryHandler(handle_inline_query))
 
+    app.add_handler(InlineQueryHandler(handle_inline_query))
+    #app.add_handler(CommandHandler("allcurrencies", commands.show_all_currencies))
+    
     print("bot is running")
     app.run_polling()
+
 
 if __name__ == '__main__':
     main()
