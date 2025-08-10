@@ -1,33 +1,12 @@
 import json
 import os
+from datetime import datetime
 
 from telegram import Update
 from telegram.ext import CallbackContext, ConversationHandler
 
 from SerializableObjects.plan import Plan
 from conversation_states import ConversationStates
-
-"""
-    does not work without pages
-"""
-# async def show_all_currencies(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # if not os.path.exists('all_currencies.json'):
-    #     await main.load_all_currencies()
-    #
-    # with open('all_currencies.json', 'r') as json_file:
-    #     all_currencies = json.load(json_file)["data"]
-    #
-    # reply = ""
-    #
-    # i = 0
-    # for currency in all_currencies.values():
-    #     i += 1
-    #     reply += f"{currency["code"]} - {currency["name"]}\n"
-    #     if i == 10:
-    #         break
-    #
-    # await update.message.reply_text(reply)
-
 
 
 async def new_plan(update: Update, context: CallbackContext) -> int:
@@ -79,11 +58,41 @@ async def name_plan(update: Update, context: CallbackContext) -> int:
                 return context.chat_data["state"]
 
     newplan = Plan(name=name)
-    await update.message.chat.send_message("What day do you want the plan to start from?\n"
-                                           "Your response should be sent in this format: dd.mmm.yyyy\n"
+    await update.message.chat.send_message(f"Good!\nYour plan is now called **{name}**\n"
+                                           f"What day do you want the plan to start from?\n\n"
+                                           "Your response should be sent in this format: yyyy-mm-dd\n"
                                            "If you want to start your plan today, just send a point (.)")
 
     context.chat_data["plan"] = newplan
+    context.chat_data["state"] += 1
+    return context.chat_data["state"]
+
+async def select_date(update: Update, context: CallbackContext) -> int:
+    if context.chat_data["conversation_owner"] != update.message.from_user.id:
+        return context.chat_data["state"]
+
+    if update.message.text == ".":
+        start_date = str(datetime.now().date())
+        context.chat_data["plan"].start_date = start_date
+        context.chat_data["state"] += 1
+        await update.message.chat.send_message(f"Your plan now starts from {start_date}.\n"
+                                               f"Please send a code of a currency you're paying with.\n\n"
+                                               f"For example, if you create a plan for a subscription to "
+                                               f"pay with dollars, send \"USD\".")
+        return context.chat_data["state"]
+
+    selected_date_list = update.message.text.split("-")
+    if len(selected_date_list) != 3:
+        await update.message.chat.send_message("Your response should be sent in this format: yyyy-mm-dd.")
+        return context.chat_data["state"]
+
+    try:
+        start_date = datetime.fromisoformat(update.message.text)
+    except ValueError:
+        await update.message.chat.send_message("Something went wrong.\n"
+                                               "Your response should be sent in this format: yyyy-mm-dd.")
+        return context.chat_data["state"]
+
     context.chat_data["state"] += 1
     return context.chat_data["state"]
 

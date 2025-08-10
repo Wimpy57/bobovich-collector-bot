@@ -166,7 +166,8 @@ def main():
     app.add_handler(ConversationHandler(
         entry_points=[CommandHandler("newplan", commands.new_plan)],
         states={
-            ConversationStates.NAMING: [MessageHandler(filters.TEXT & ~filters.COMMAND, commands.name_plan)]
+            ConversationStates.NAMING: [MessageHandler(filters.TEXT & ~filters.COMMAND, commands.name_plan)],
+            ConversationStates.DATE_TO_START: [MessageHandler(filters.TEXT & ~filters.COMMAND, commands.select_date)]
         },
         fallbacks = [
             CommandHandler("cancel", commands.cancel),
